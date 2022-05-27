@@ -1,3 +1,3 @@
 # weather
-weather 앱 만들기
-null safety부터 고치기
+* api 활용하여 날씨 정보 불러오기
+* OpenWeather 사용
