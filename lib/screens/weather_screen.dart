@@ -1,46 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timer_builder/timer_builder.dart';
 import 'package:intl/intl.dart';
 import 'package:weather/model/model.dart';
 
 class WeatherScreen extends StatefulWidget {
-  WeatherScreen({this.parseWeatherData});
+  WeatherScreen({this.parseWeatherData, this.parseAirPollution});
 
   final dynamic parseWeatherData;
+  final dynamic parseAirPollution;
 
   @override
-  State<WeatherScreen> createState() => _WeatherScreenState();
+  _WeatherScreenState createState() => _WeatherScreenState();
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
   Model model = Model();
-  late String cityName;
-  late int temp;
+  String? cityName;
+  String? des;
+  int? temp;
   Widget? icon;
+  Widget? pollution;
+  Widget? quality;
+  double? air;
+  double? air2;
   var date = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    updateData(widget.parseWeatherData);
+    updateData(widget.parseWeatherData, widget.parseAirPollution);
   }
 
-  void updateData(dynamic weatherData) {
+  void updateData(dynamic weatherData, dynamic airData) {
     double temp2 = weatherData['main']['temp'].toDouble();
-    int condition = weatherData['weather'][0]['id'];
-    temp = temp2.round();
+    temp = temp2.toInt();
     cityName = weatherData['name'];
+    var condition = weatherData['weather'][0]['id'];
+    var grade = airData['list'][0]['main']['aqi'];
+    var index = airData['list'][0]['main']['aqi'];
+    des = weatherData['weather'][0]['description'];
     icon = model.getWeatherIcon(condition);
-
+    pollution = model.getAirIcon(grade);
+    quality = model.airIndex(index);
+    air = airData['list'][0]['components']['pm2_5'];
+    air2 = airData['list'][0]['components']['pm10'];
     print(temp);
     print(cityName);
   }
 
   String getSystemTime() {
-    var now = DateTime.now();
-    return DateFormat("h:mm a").format(now);
+    var now = new DateTime.now();
+    return new DateFormat("h:mm a").format(now);
   }
 
   @override
@@ -48,21 +59,25 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // title: Text(''),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.near_me),
+          icon: Icon(
+            Icons.near_me,
+            size: 30.0,
+            color: Colors.white,
+          ),
           onPressed: () {},
-          iconSize: 30,
         ),
         actions: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.location_searching,
+              size: 30.0,
+              color: Colors.white,
             ),
             onPressed: () {},
-            iconSize: 30,
           )
         ],
       ),
@@ -76,9 +91,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
               height: double.infinity,
             ),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Column(
@@ -88,7 +104,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(
+                            SizedBox(
                               height: 150,
                             ),
                             Text(
@@ -98,23 +114,28 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white),
                             ),
+                            SizedBox(
+                              height: 10,
+                            ),
                             Row(
                               children: [
-                                TimerBuilder.periodic(
-                                  (const Duration(minutes: 1)),
-                                  builder: (context) {
-                                    print('${getSystemTime()}');
-                                    return Text(
-                                      '${getSystemTime()}',
-                                      style: GoogleFonts.lato(
-                                          fontSize: 16, color: Colors.white),
-                                    );
-                                  },
-                                ),
+                                TimerBuilder.periodic(Duration(minutes: 1),
+                                    builder: (context) {
+                                  print("${getSystemTime()}");
+                                  return Text(
+                                    "${getSystemTime()}",
+                                    style: GoogleFonts.lato(
+                                        fontSize: 16.0,
+                                        //fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  );
+                                }),
                                 Text(DateFormat(' - EEEE, ').format(date),
+                                    textAlign: TextAlign.left,
                                     style: GoogleFonts.lato(
                                         fontSize: 16, color: Colors.white)),
                                 Text(DateFormat('d MMM, yyy').format(date),
+                                    textAlign: TextAlign.left,
                                     style: GoogleFonts.lato(
                                         fontSize: 16, color: Colors.white)),
                               ],
@@ -134,13 +155,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
                             Row(
                               children: [
                                 icon!,
-                                const SizedBox(
+                                SizedBox(
                                   width: 10,
                                 ),
                                 Text(
-                                  '맑은 하늘',
+                                  '$des',
                                   style: GoogleFonts.lato(
-                                    fontSize: 16,
+                                    fontSize: 15,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -153,10 +174,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
                   ),
                   Column(
                     children: [
-                      const Divider(
-                        height: 15,
-                        thickness: 2,
-                        color: Colors.white30,
+                      Container(
+                        margin: EdgeInsets.symmetric(vertical: 40.0),
+                        decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white30)),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -167,27 +188,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                 'AQI(대기질지수)',
                                 style: GoogleFonts.lato(
                                   fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(
+                              SizedBox(
                                 height: 10,
                               ),
-                              Image.asset(
-                                'image/bad.png',
-                                width: 37,
-                                height: 35,
+                              pollution!,
+                              SizedBox(
+                                height: 5,
                               ),
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              Text(
-                                "매우나쁨",
-                                style: GoogleFonts.lato(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.bold),
-                              ),
+                              quality!,
                             ],
                           ),
                           Column(
@@ -196,28 +208,27 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                 '미세먼지',
                                 style: GoogleFonts.lato(
                                   fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(
+                              SizedBox(
                                 height: 10,
                               ),
                               Text(
-                                '174.75',
+                                '$air2',
                                 style: GoogleFonts.lato(
                                   fontSize: 24,
+                                  fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
-                              ),
-                              const SizedBox(
-                                height: 10,
                               ),
                               Text(
                                 '㎍/㎥',
                                 style: GoogleFonts.lato(
                                     fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold),
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
                               ),
                             ],
                           ),
@@ -227,28 +238,28 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                 '초미세먼지',
                                 style: GoogleFonts.lato(
                                   fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(
+                              SizedBox(
                                 height: 10,
                               ),
                               Text(
-                                '84.03',
+                                '$air',
                                 style: GoogleFonts.lato(
                                   fontSize: 24,
+                                  fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
-                              ),
-                              const SizedBox(
-                                height: 10,
                               ),
                               Text(
                                 '㎍/㎥',
                                 style: GoogleFonts.lato(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
                             ],
                           ),
